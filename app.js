@@ -370,6 +370,12 @@ app.use((err, req, res, next) => {
   res.status(statusCode).render("error.ejs", { err });
 });
 
-app.listen(8080, () => {
-  console.log("server is listening to port 8080");
-});
+const PORT = process.env.PORT || 8080;
+
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log("server started");
+  });
+}
+
+module.exports = app;
