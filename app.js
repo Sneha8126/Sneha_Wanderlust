@@ -16,7 +16,7 @@ const Listing = require("./models/listing.js");
 const Booking = require("./models/booking.js");
 const ExpressError = require("./utils/ExpressError.js");
 const wrapAsync = require("./utils/wrapAsync.js");
-const { isLoggedIn, isGuest } = require("./middleware.js");
+const { isLoggedIn, isGuest } = require("./authMiddleware.js");
 
 // Session & Flash Configuration
 const session = require("express-session");
