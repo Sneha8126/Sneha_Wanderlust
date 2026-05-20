@@ -23,7 +23,7 @@ const session = require("express-session");
 const MongoStore = require("connect-mongo")(session); 
 const flash = require("connect-flash");
 
-// Authentication Packages
+// Authentication
 const passport = require("passport");
 const LocalStrategy = require("passport-local");
 const User = require("./models/user.js");
@@ -35,14 +35,11 @@ const UserRouter = require("./routes/user.js");
 
 const dbUrl = process.env.ATLASDB_URL;
 
-// Optimized Mongoose Connection for Serverless
-let isConnected = false;
+// Database Connection
 async function main() {
-  if (isConnected) return;
   await mongoose.connect(dbUrl);
-  isConnected = true;
+  console.log("connected to DB");
 }
-
 main().catch((err) => console.log(err));
 
 // Settings & Middlewares
@@ -51,18 +48,16 @@ app.set("views", path.join(__dirname, "views"));
 app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride("_method"));
 app.engine('ejs', ejsMate);
-app.use(express.static(path.join(__dirname, "/public")));
+app.use(express.static(path.join(__dirname, "public")));
 
-// Mongo Session Store Setup
+// Session Store Setup
 const store = new MongoStore({
   url: dbUrl,
-  crypto: {
-    secret: process.env.SECRET || "mysupersecretcode",
-  },
+  crypto: { secret: process.env.SECRET || "mysupersecretcode" },
   touchAfter: 24 * 3600,
 });
 
-const sessionOptions = {
+app.use(session({
   store: store,
   secret: process.env.SECRET || "mysupersecretcode",
   resave: false,
@@ -72,12 +67,10 @@ const sessionOptions = {
     maxAge: 7 * 24 * 60 * 60 * 1000,
     httpOnly: true,
   },
-};
-
-app.use(session(sessionOptions));
+}));
 app.use(flash());
 
-// Passport Authentication Setup
+// Passport Setup
 app.use(passport.initialize());
 app.use(passport.session());
 passport.use(new LocalStrategy(User.authenticate()));
@@ -91,177 +84,66 @@ app.use((req, res, next) => {
   next();
 });
 
-// App Core Routes Mapping
+// Routes
 app.use("/listings", listingRouter);
 app.use("/listings/:id/reviews", reviewRouter);
 app.use("/", UserRouter);
 
-// Razorpay SDK Initialization
+// Razorpay SDK
 const Razorpay = require("razorpay");
 const razorpayInstance = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
     key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
+// Booking Routes
 app.post("/listings/:id/bookings", isLoggedIn, isGuest, wrapAsync(async (req, res) => {
     let { id } = req.params;
     let { startDate, endDate , guestName, guestEmail, guestPhone } = req.body.booking;
-    
     let listing = await Listing.findById(id);
-    if (!listing) {
-        req.flash("error", "Listing does not exist!");
-        return res.redirect("/listings");
-    }
+    if (!listing) { req.flash("error", "Listing does not exist!"); return res.redirect("/listings"); }
 
     let start = new Date(startDate);
     let end = new Date(endDate);
-    let today = new Date();
-    let maxBookingWindow = new Date();
-    maxBookingWindow.setDate(today.getDate() + 30);
+    if (end <= start) { req.flash("error", "Check-out must be after Check-in!"); return res.redirect(`/listings/${id}`); }
 
-    if (start > maxBookingWindow) {
-        req.flash("error", "Policy Restriction: Stays can only be booked up to 30 days in advance!");
-        return res.redirect(`/listings/${id}`);
-    }
-
-    if (end <= start) {
-        req.flash("error", "Check-out date must be after Check-in date!");
-        return res.redirect(`/listings/${id}`);
-    }
-
-    const existingBooking = await Booking.findOne({
-        listing: id,
-        $or: [ { startDate: { $lte: end }, endDate: { $gte: start } } ]
-    });
-
-    if (existingBooking) {
-        req.flash("error", "This destination is already booked for the selected dates!");
-        return res.redirect(`/listings/${id}`);
-    }
-
-    const timeDiff = Math.abs(end.getTime() - start.getTime());
-    const totalDays = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-    const totalPrice = totalDays * listing.price;
-
-    const options = {
-        amount: Number(totalPrice) * 100,
-        currency: "INR",
-        receipt: `receipt_order_${id.substring(0, 5)}_${Date.now()}`
-    };
-
+    const options = { amount: (Math.ceil((end - start) / (1000 * 60 * 60 * 24)) * listing.price) * 100, currency: "INR", receipt: `receipt_${Date.now()}` };
     const order = await razorpayInstance.orders.create(options);
 
-    res.render("listings/checkout.ejs", { 
-        order, 
-        listing, 
-        startDate, 
-        endDate, 
-        totalPrice,
-        key_id: process.env.RAZORPAY_KEY_ID,
-        successRedirectUrl: `${req.protocol}://${req.get("host")}/listings/${id}/bookings/success?startDate=${startDate}&endDate=${endDate}&totalPrice=${totalPrice}&guestName=${encodeURIComponent(guestName)}&guestEmail=${encodeURIComponent(guestEmail)}&guestPhone=${encodeURIComponent(guestPhone)}`
-    });
+    res.render("listings/checkout.ejs", { order, listing, startDate, endDate, totalPrice: options.amount/100, key_id: process.env.RAZORPAY_KEY_ID, successRedirectUrl: `${req.protocol}://${req.get("host")}/listings/${id}/bookings/success?startDate=${startDate}&endDate=${endDate}&totalPrice=${options.amount/100}&guestName=${encodeURIComponent(guestName)}&guestEmail=${encodeURIComponent(guestEmail)}&guestPhone=${encodeURIComponent(guestPhone)}` });
 }));
 
 app.get("/listings/:id/bookings/success", isLoggedIn, wrapAsync(async (req, res) => {
-    let { id } = req.params;
-    let { startDate, endDate, totalPrice, payment_id, guestName, guestEmail, guestPhone } = req.query;
-
-    let existingBooking = await Booking.findOne({
-        listing: id,
-        user: req.user._id,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate)
-    });
-
-    if (!existingBooking) {
-        let newBooking = new Booking({
-            listing: id,
-            user: req.user._id,
-            startDate: new Date(startDate),
-            endDate: new Date(endDate),
-            totalPrice: Number(totalPrice)
-        });
-        await newBooking.save();
-    }
-
+    let { id, startDate, endDate, totalPrice, guestName, guestEmail, guestPhone } = req.query;
+    let newBooking = new Booking({ listing: id, user: req.user._id, startDate, endDate, totalPrice });
+    await newBooking.save();
     let listing = await Listing.findById(id);
-    res.render("listings/success.ejs", {
-        listing,
-        startDate,
-        endDate,
-        totalPrice,
-        guestName,
-        guestEmail,
-        guestPhone,
-        payment_id: payment_id || `pay_dummy_${Date.now().toString().slice(-6)}`
-    });
+    res.render("listings/success.ejs", { listing, startDate, endDate, totalPrice, guestName, guestEmail, guestPhone });
 }));
 
 app.delete("/listings/:id/bookings/:bookingId", isLoggedIn, wrapAsync(async (req, res) => {
-    let { id, bookingId } = req.params;
-    let booking = await Booking.findById(bookingId).populate("listing").populate("user");
-    
-    if (!booking) {
-        req.flash("error", "Booking record not found.");
-        return res.redirect("/profile");
-    }
-
-    let checkInDate = new Date(booking.startDate);
-    let today = new Date();
-    let policyMessage = "";
-
-    if (req.user.role === 'host') {
-        let refundAmount = booking.totalPrice;
-        policyMessage = `Reservation declined. 100% Full Refund issued.`;
-        
-        let transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-        });
-
-        await transporter.sendMail({
-            from: `"Wanderlust Support" <${process.env.EMAIL_USER}>`,
-            to: booking.user.email,
-            subject: `Cancellation update`,
-            html: `Your reservation at ${booking.listing.title} has been cancelled.`
-        }).catch(err => console.log(err));
-    } else {
-        let timeDifference = checkInDate.getTime() - today.getTime();
-        let daysBeforeCheckIn = Math.ceil(timeDifference / (1000 * 60 * 60 * 24));
-        if (daysBeforeCheckIn >= 10) {
-            policyMessage = `Trip cancelled successfully! 100% Refund processed.`;
-        } else if (daysBeforeCheckIn >= 0) {
-            policyMessage = `Trip cancelled. 30% penalty applied. 70% Refund processed.`;
-        } else {
-            req.flash("error", "Cannot cancel ongoing reservations!");
-            return res.redirect("/profile");
-        }
-    }
-
-    await Booking.findByIdAndDelete(bookingId);
-    await Listing.findByIdAndUpdate(id, { $pull: { bookings: bookingId } });
-    req.flash("success", policyMessage);
+    await Booking.findByIdAndDelete(req.params.bookingId);
+    await Listing.findByIdAndUpdate(req.params.id, { $pull: { bookings: req.params.bookingId } });
+    req.flash("success", "Booking cancelled!");
     res.redirect("/profile");
 }));
 
 app.get("/profile", isLoggedIn, wrapAsync(async (req, res) => {
     let hostListings = await Listing.find({ owner: req.user._id });
-    let listingIds = hostListings.map(listing => listing._id);
-    const hostBookings = await Booking.find({ listing: { $in: listingIds } }).populate("listing").populate("user", "username email").sort({ createdAt: -1 });
-    const guestBookings = await Booking.find({ user: req.user._id }).populate("listing").sort({ createdAt: -1 });
+    const hostBookings = await Booking.find({ listing: { $in: hostListings.map(l => l._id) } }).populate("listing").populate("user", "username email");
+    const guestBookings = await Booking.find({ user: req.user._id }).populate("listing");
     res.render("users/profile.ejs", { hostBookings, guestBookings, hostListings });
 }));
 
-app.use((req, res, next) => {
-  next(new ExpressError(404, "Page not found!"));
-});
-
+// Error Handlers
+app.use((req, res, next) => { next(new ExpressError(404, "Page not found!")); });
 app.use((err, req, res, next) => {
-  let { statusCode = 500, message = "Something went wrong!" } = err;
+  let { statusCode = 500 } = err;
   res.status(statusCode).render("error.ejs", { err });
 });
 
-module.exports = app;
+// Server Listener
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
