@@ -4,6 +4,12 @@ const Listing = require("../models/listing");
 
 module.exports.createBooking = async (req, res) => {
     let { id } = req.params;
+    // Yahan check karein ki id sach mein mil rahi hai ya nahi
+    console.log("DEBUG: Listing ID is:", id); 
+    
+    if (!id) {
+        throw new Error("Listing ID is missing in request params!");
+    }
     let { startDate, endDate } = req.body.booking;
     
     let listing = await Listing.findById(id);

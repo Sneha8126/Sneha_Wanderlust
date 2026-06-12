@@ -18,6 +18,29 @@
     padding: 0.5rem 3rem 0.5rem 3rem;
     font-size: 1rem; /* FIX 1: Unit lagayi 'rem' */
   }
+   @media (max-width: 768px) {
+        .filter-control-row {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        #filters-box {
+            overflow-x: auto; /* Filters ko horizontal scrollable banayega */
+            flex-wrap: nowrap; /* Wrap nahi hone dega */
+            gap: 1.5rem;
+            padding-bottom: 0.5rem;
+            width: 100%;
+        }
+
+        .filter-link {
+            min-width: 60px; /* Har filter ko size dega */
+        }
+
+        .tax-toggle {
+            width: 100%;
+            justify-content: center;
+        }
+    }
 </style>
 
 <nav class="navbar navbar-expand-md bg-body-light border-bottom sticky-top">

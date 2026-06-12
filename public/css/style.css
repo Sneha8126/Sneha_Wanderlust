@@ -398,3 +398,29 @@ footer {
 .text-warning-heading {
     color: #856404 !important;
 }
+
+/* FIX: Stuck Modal Backdrop */
+.modal-backdrop {
+    display: none !important;
+    z-index: -1 !important;
+}
+
+body.modal-open {
+    overflow: auto !important;
+    padding-right: 0 !important;
+}
+/* Responsive Navbar Fixes */
+@media (max-width: 768px) {
+    .navbar-collapse {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .navbar form {
+        width: 100% !important;
+        margin-bottom: 10px;
+    }
+    .navbar-nav {
+        flex-direction: column;
+        width: 100%;
+    }
+}

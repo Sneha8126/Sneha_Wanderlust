@@ -132,6 +132,7 @@
     </ul>
 </div>
             <form action="/listings/<%= listing._id %>/bookings" method="POST" class="needs-validation mt-3" novalidate>
+                <input type="hidden" name="booking[listing]" value="<%= listing._id %>">
                 
                 <div class="row bg-light p-3 rounded-4 mb-3 border mx-0 shadow-sm">
                     <h6 class="fw-bold text-secondary mb-3">

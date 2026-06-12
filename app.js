@@ -87,6 +87,7 @@ app.use((req, res, next) => {
 // Routes
 app.use("/listings", listingRouter);
 app.use("/listings/:id/reviews", reviewRouter);
+
 app.use("/", UserRouter);
 
 // Razorpay SDK
@@ -95,6 +96,21 @@ const razorpayInstance = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
     key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
+
+// app.js mein add karein
+app.post("/listings/:id/wishlist", isLoggedIn, wrapAsync(async (req, res) => {
+    let { id } = req.params;
+    let user = req.user;
+
+    if (user.wishlist.includes(id)) {
+        await User.findByIdAndUpdate(user._id, { $pull: { wishlist: id } });
+        req.flash("success", "Removed from wishlist!");
+    } else {
+        await User.findByIdAndUpdate(user._id, { $push: { wishlist: id } });
+        req.flash("success", "Added to wishlist!");
+    }
+    res.redirect(`/listings/${id}`);
+}));
 
 // Booking Routes
 app.post("/listings/:id/bookings", isLoggedIn, isGuest, wrapAsync(async (req, res) => {
@@ -110,15 +126,35 @@ app.post("/listings/:id/bookings", isLoggedIn, isGuest, wrapAsync(async (req, re
     const options = { amount: (Math.ceil((end - start) / (1000 * 60 * 60 * 24)) * listing.price) * 100, currency: "INR", receipt: `receipt_${Date.now()}` };
     const order = await razorpayInstance.orders.create(options);
 
-    res.render("listings/checkout.ejs", { order, listing, startDate, endDate, totalPrice: options.amount/100, key_id: process.env.RAZORPAY_KEY_ID, successRedirectUrl: `${req.protocol}://${req.get("host")}/listings/${id}/bookings/success?startDate=${startDate}&endDate=${endDate}&totalPrice=${options.amount/100}&guestName=${encodeURIComponent(guestName)}&guestEmail=${encodeURIComponent(guestEmail)}&guestPhone=${encodeURIComponent(guestPhone)}` });
+     // app.js mein Booking POST route ke andar
+const successRedirectUrl = `${req.protocol}://${req.get("host")}/listings/${id}/bookings/success?id=${id}&startDate=${startDate}&endDate=${endDate}&totalPrice=${options.amount/100}&guestName=${encodeURIComponent(guestName)}&guestEmail=${encodeURIComponent(guestEmail)}&guestPhone=${encodeURIComponent(guestPhone)}`;
+    res.render("listings/checkout.ejs", { order, listing, startDate, endDate, totalPrice: options.amount/100, key_id: process.env.RAZORPAY_KEY_ID, successRedirectUrl
+
+    });
 }));
 
 app.get("/listings/:id/bookings/success", isLoggedIn, wrapAsync(async (req, res) => {
-    let { id, startDate, endDate, totalPrice, guestName, guestEmail, guestPhone } = req.query;
-    let newBooking = new Booking({ listing: id, user: req.user._id, startDate, endDate, totalPrice });
+    // req.params.id se listing ID lenge, na ki query se (ye zyada safe hai)
+    let id = req.params.id; 
+    let { startDate, endDate, totalPrice, guestName, guestEmail, guestPhone,payment_id } = req.query;
+
+    if (!id) {
+        req.flash("error", "Invalid Booking Request!");
+        return res.redirect("/listings");
+    }
+
+    let newBooking = new Booking({ 
+        listing: id, 
+        user: req.user._id, 
+        startDate: new Date(startDate), 
+        endDate: new Date(endDate), 
+        totalPrice: Number(totalPrice)
+    });
+
     await newBooking.save();
+    
     let listing = await Listing.findById(id);
-    res.render("listings/success.ejs", { listing, startDate, endDate, totalPrice, guestName, guestEmail, guestPhone });
+    res.render("listings/success.ejs", { listing, startDate, endDate, totalPrice, guestName, guestEmail, guestPhone,payment_id });
 }));
 
 app.delete("/listings/:id/bookings/:bookingId", isLoggedIn, wrapAsync(async (req, res) => {
