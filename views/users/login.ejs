@@ -1,8 +1,9 @@
 <% layout("/layouts/boilerplate") %>
 
 <div class="row mt-3">
-    <h1 class="col-6 offset-3">Login</h1>
-    <div class="col-6 offset-3 mb-5">
+    <!-- Mobile par col-10, offset-1; Desktop par col-6, offset-3 -->
+    <div class="col-10 col-md-6 offset-1 offset-md-3">
+        <h1 class="mb-3">Login</h1>
         <form action="/login" method="POST" class="needs-validation" novalidate> 
             
             <div class="mb-3">
@@ -12,14 +13,26 @@
             </div>
 
             <div class="mb-3">
-    <label for="password" class="form-label"> Please enter your password</label>
-    <div class="input-group">
-        <input type="password" name="password" id="password" class="form-control" >
-        <button class="btn btn-outline-secondary" type="button" id="loginPasswordToggle" >
-            <i class="fa-solid fa-eye"></i>
-        </button>
+                <label for="password" class="form-label">Password</label>
+                <div class="input-group">
+                    <input type="password" name="password" id="password" class="form-control" required>
+                    <button class="btn btn-outline-secondary" type="button" id="loginPasswordToggle">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button class="btn btn-danger w-100 mb-2">Login</button>
+            <a href="/forgot" class="d-block text-danger text-decoration-none small mb-3">Forgot Password?</a>
+            
+            <p class="text-muted small">
+                Don't have an account? 
+                <a href="/signup" class="text-danger text-decoration-underline fw-bold">Register here</a>
+            </p>
+        </form>
     </div>
 </div>
+
 <script>
     document.getElementById("loginPasswordToggle").addEventListener("click", function() {
         const passwordInput = document.getElementById("password");
@@ -34,13 +47,3 @@
         }
     });
 </script>
-
-            <button class="btn btn-success px-4">Login</button>
-            <a href="/forgot" class="d-block mt-2 text-danger text-decoration-none small">Forgot Password?</a>
-            <span class="text-muted small">
-        Don't have an account? 
-        <a href="/signup" class="text-danger text-decoration-underline fw-bold">Register here</a>
-    </span>
-        </form>
-    </div>
-</div>
