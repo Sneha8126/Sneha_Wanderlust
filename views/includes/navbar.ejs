@@ -1,130 +1,46 @@
-<style>
-  .search-btn {
-    background-color: #fe424d;
-    color: #fff;
-    border-radius: 25px;
-    padding: 0 1rem 0 1rem;
-  }
-  .search-btn:hover {
-    background-color: #fe424d;
-    color: #fff;
-  }
-  .search-btn i {
-    display: inline;
-    margin-right: 0.5rem;
-  }
-  .search-inp {
-    border-radius: 25px;
-    padding: 0.5rem 3rem 0.5rem 3rem;
-    font-size: 1rem; /* FIX 1: Unit lagayi 'rem' */
-  }
-   @media (max-width: 768px) {
-        .filter-control-row {
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        #filters-box {
-            overflow-x: auto; /* Filters ko horizontal scrollable banayega */
-            flex-wrap: nowrap; /* Wrap nahi hone dega */
-            gap: 1.5rem;
-            padding-bottom: 0.5rem;
-            width: 100%;
-        }
-
-        .filter-link {
-            min-width: 60px; /* Har filter ko size dega */
-        }
-
-        .tax-toggle {
-            width: 100%;
-            justify-content: center;
-        }
-    }
-</style>
-
-<nav class="navbar navbar-expand-md bg-body-light border-bottom sticky-top">
+<nav class="navbar navbar-expand-lg bg-body-light border-bottom sticky-top">
   <div class="container-fluid">
     <a class="navbar-brand" href="/listings"><i class="fa-solid fa-compass-drafting"></i></a>
-    <button class="navbar-toggler" 
-      type="button" 
-      data-bs-toggle="collapse" 
-      data-bs-target="#navbarNavAltMarkup">
+    
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
     </button>
     
-    <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
-      <div class="navbar-nav">
-        <a class="nav-link me-3 fw-semibold text-dark" href="/listings">Explore</a>
-      </div>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link fw-semibold text-dark" href="/listings">Explore</a></li>
+      </ul>
 
-      <div class="navbar-nav ms-auto align-items-center">
+      <div class="navbar-nav ms-auto align-items-lg-center">
         
-
-        <form class="d-flex me-3" role="search" action="/listings" method="GET">
-          <input class="form-control me-2 search-inp" type="search" name="search" placeholder="Search destinations..."aria-label="Search"value="<%= typeof search !== 'undefined' && search ? search : '' %>">
-          <button class="btn search-btn" type="submit"><i class="fa-solid fa-magnifying-glass"></i>Search</button>
-        </form> 
-
-        <div class="d-flex align-items-center ms-auto gap-3 flex-wrap flex-md-nowrap">
-    <form action="/listings" method="GET" class="d-flex align-items-center bg-light border px-4 py-2 rounded-pill shadow-sm" style="max-width: 420px; width: 100%;">
-        
-        <% if(typeof selectedCategory !== 'undefined' && selectedCategory) { %>
-            <input type="hidden" name="category" value="<%= selectedCategory %>">
-        <% } %>
-        <% if(typeof search !== 'undefined' && search) { %>
-            <input type="hidden" name="search" value="<%= search %>">
-        <% } %>
-
-        <label for="navPriceRange" class="me-3 fw-bold text-secondary text-nowrap" style="font-size: 0.85rem;">
-            Max: <span class="text-danger">₹<span id="navPriceValue"><%= typeof maxPrice !== 'undefined' && maxPrice ? Number(maxPrice).toLocaleString('en-IN') : '10,000' %></span></span>
-        </label>
-
-        <input 
-            type="range" 
-            class="form-range me-3" 
-            id="navPriceRange" 
-            name="maxPrice" 
-            min="500" 
-            max="15000" 
-            step="500" 
-            style="width: 180px; height: 5px; cursor: pointer;"
-            value="<%= typeof maxPrice !== 'undefined' && maxPrice ? maxPrice : '10000' %>"
-            oninput="document.getElementById('navPriceValue').innerText = Number(this.value).toLocaleString('en-IN')"
-        >
-
-        <button type="submit" class="btn btn-danger rounded-circle p-0 d-flex align-items-center justify-content-center border-0 shadow-sm" style="width: 30px; height: 30px; min-width: 30px;" title="Apply Filter">
-            <i class="fa-solid fa-arrow-right text-white" style="font-size: 0.85rem;"></i>
-        </button>
-        
-        <% if(typeof maxPrice !== 'undefined' && maxPrice) { %>
-            <a href="/listings" class="ms-2 text-muted text-decoration-none" title="Reset Price Filter" style="font-size: 0.9rem;">
-                <i class="fa-solid fa-rotate-left"></i>
-            </a>
-        <% } %>
-    </form>
-</div>
+        <form class="d-flex my-2" action="/listings" method="GET">
+          <input class="form-control rounded-pill search-inp" type="search" name="search" placeholder="Search..." value="<%= typeof search !== 'undefined' && search ? search : '' %>">
+          <button class="btn search-btn" type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </form>
 
         <% if(currUser && currUser.role === 'host') { %>
-        <a class="nav-link me-3 fw-semibold text-dark" href="/listings/new">Airbnb your home</a>
+          <a class="nav-link fw-semibold text-dark" href="/listings/new">Airbnb your home</a>
         <% } %>
         
         <% if(!currUser){ %>
-          <a class="nav-link me-3 fw-semibold text-dark" href="/signup"><b>Sign up</b></a>
-          <a class="nav-link me-3 fw-semibold text-dark" href="/login"><b>Log in</b></a>
-          
-        <% } %>
-        <% if(currUser) { %>
-    <a class="nav-link me-3 fw-semibold text-dark" href="/wishlist"><i class="fa-regular fa-heart"></i> Wishlist</a>
-<% } %>
-        
-        <a class="nav-link me-3 fw-semibold text-dark" href="/profile"><i class="fa-regular fa-user-circle"></i> Profile</a>
-        
-        <% if(currUser){ %>
-          <a class="nav-link me-3 fw-semibold text-dark" href="/logout">Log out</a>
+          <a class="nav-link fw-semibold text-dark" href="/signup">Sign up</a>
+          <a class="nav-link fw-semibold text-dark" href="/login">Log in</a>
+        <% } else { %>
+          <a class="nav-link fw-semibold text-dark" href="/wishlist"><i class="fa-regular fa-heart"></i> Wishlist</a>
+          <a class="nav-link fw-semibold text-dark" href="/profile"><i class="fa-regular fa-user-circle"></i> Profile</a>
+          <a class="nav-link fw-semibold text-dark" href="/logout">Log out</a>
         <% } %>
       </div>
-
     </div>
   </div>
 </nav>
+
+<style>
+  .search-btn { background-color: #fe424d; color: #fff; border-radius: 25px; padding: 0 1rem; margin-left: -40px; border: none; }
+  .search-inp { border-radius: 25px; padding: 0.5rem 3rem 0.5rem 1rem; }
+  
+  @media (max-width: 992px) {
+    .navbar-collapse { background: #f8f9fa; padding: 10px; border-radius: 10px; margin-top: 10px; }
+    .nav-link { padding: 8px 0 !important; }
+  }
+</style>
