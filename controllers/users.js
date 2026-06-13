@@ -48,7 +48,7 @@ module.exports.showWishlist = async (req, res) => {
             req.flash("error", "User not found!");
             return res.redirect("/listings");
         }
-        res.render("listings/wishlist.ejs", { wishlistListings: user.wishlist });
+        res.render("users/wishlist.ejs", { wishlistListings: user.wishlist });
     } catch (err) {
         req.flash("error", "Could not load wishlist.");
         res.redirect("/listings");
