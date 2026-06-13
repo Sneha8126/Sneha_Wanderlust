@@ -18,7 +18,7 @@ module.exports.signup = async (req, res, next) => {
             if (err) {
                 return next(err);
             }
-            sendWelcomeEmail(registeredUser.email, registeredUser.username);
+            await sendWelcomeEmail(registeredUser.email, registeredUser.username);
             req.flash("success", "Welcome to Wanderlust!");
             res.redirect("/listings");
         });
