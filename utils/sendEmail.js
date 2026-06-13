@@ -24,11 +24,11 @@ const sendWelcomeEmail = async (userEmail, username) => {
                         Thank you for joining <strong>Wanderlust</strong>! Your account has been successfully created. Now you can explore premium destinations, lock incredible stays, or even host your own properties!
                     </p>
                     <div style="text-align: center; margin: 30px 0;">
-                        <a href="http://localhost:8080/listings" style="background-color: #fe424d; color: white; padding: 12px 25px; text-decoration: none; font-weight: bold; border-radius: 25px; font-size: 16px;">Explore Destinations Now</a>
+                        <a href="https://sneha-wanderlust.onrender.com/listings" style="background-color: #fe424d; color: white; padding: 12px 25px; text-decoration: none; font-weight: bold; border-radius: 25px; font-size: 16px;">Explore Destinations Now</a>
                     </div>
                     <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
                     <p style="font-size: 12px; color: #777; text-align: center;">
-                        © 2026 Wanderlust Inc. | Designed with ❤️ by Sneha
+                        © 2026 Wanderlust Inc. | Designed with ❤️ by Sneha Rajput
                     </p>
                 </div>
             `
