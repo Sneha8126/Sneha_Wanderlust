@@ -12,20 +12,13 @@ module.exports.signup = async (req, res, next) => {
         let { username, email, password, role } = req.body;
         const newUser = new User({ email, username, role });
         
-        // Passport standard registration mechanism
         const registeredUser = await User.register(newUser, password);
         
         req.login(registeredUser, async (err) => {
             if (err) {
                 return next(err);
             }
-
-            // =========================================================
-            // LIVE TRIGGER: Background execution for Email automation
-            // =========================================================
-            // Isko async wrapper bina block kiye send kar dega
             sendWelcomeEmail(registeredUser.email, registeredUser.username);
-
             req.flash("success", "Welcome to Wanderlust!");
             res.redirect("/listings");
         });
@@ -40,19 +33,32 @@ module.exports.renderLoginForm = (req,res)=>{
 }
 
 module.exports.login = async(req,res)=>{
-req.flash("success","Welcome back to Wanderlust!");
-let redirectUrl = res.locals.redirectUrl || "/listings";
-res.redirect(redirectUrl);
+    req.flash("success","Welcome back to Wanderlust!");
+    let redirectUrl = res.locals.redirectUrl || "/listings";
+    res.redirect(redirectUrl);
 }
 
-
+// ==========================================
+// NEW: Wishlist Logic (Isse error fix ho jayega)
+// ==========================================
+module.exports.showWishlist = async (req, res) => {
+    try {
+        let user = await User.findById(req.user._id).populate("wishlist");
+        if (!user) {
+            req.flash("error", "User not found!");
+            return res.redirect("/listings");
+        }
+        res.render("listings/wishlist.ejs", { wishlistListings: user.wishlist });
+    } catch (err) {
+        req.flash("error", "Could not load wishlist.");
+        res.redirect("/listings");
+    }
+};
 
 // 1. Render Forgot Password Form
 module.exports.renderForgotForm = (req, res) => {
     res.render("users/forgot.ejs");
 };
-
-// controllers/users.js ke andar forgotPassword function ko isse replace karein:
 
 module.exports.forgotPassword = async (req, res) => {
     try {
@@ -64,18 +70,13 @@ module.exports.forgotPassword = async (req, res) => {
             return res.redirect("/forgot");
         }
 
-        // Token Generation Loop
         const token = crypto.randomBytes(20).toString("hex");
         
         user.resetPasswordToken = token;
-        user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+        user.resetPasswordExpires = Date.now() + 3600000;
         await user.save();
 
-        console.log("Token successfully saved in DB for user:", user.username);
-
         const resetLink = `http://localhost:8080/reset/${token}`;
-        
-        // Dynamic wait check execution
         await sendResetEmail(user.email, resetLink);
 
         req.flash("success", `An e-mail has been sent to ${user.email} with further instructions.`);
@@ -88,23 +89,20 @@ module.exports.forgotPassword = async (req, res) => {
     }
 };
 
-// 3. Render Reset Password Form (Verify Token first)
 module.exports.renderResetForm = async (req, res) => {
     let { token } = req.params;
     const user = await User.findOne({ 
         resetPasswordToken: token, 
-        resetPasswordExpires: { $gt: Date.now() } // Token must be greater than current time
+        resetPasswordExpires: { $gt: Date.now() }
     });
 
     if (!user) {
         req.flash("error", "Password reset token is invalid or has expired.");
         return res.redirect("/forgot");
     }
-
     res.render("users/reset.ejs", { token });
 };
 
-// 4. Update New Password in DB
 module.exports.resetPassword = async (req, res) => {
     let { token } = req.params;
     let { password, confirmPassword } = req.body;
@@ -124,9 +122,8 @@ module.exports.resetPassword = async (req, res) => {
         return res.redirect("/forgot");
     }
 
-    // Passport-Local-Mongoose standard password reset utility method
     await user.setPassword(password);
-    user.resetPasswordToken = undefined; // Clear tokens after usage
+    user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
 
@@ -137,7 +134,7 @@ module.exports.resetPassword = async (req, res) => {
 module.exports.logout = (req,res,next)=>{
     req.logout((err)=>{
         if(err){
-          return   next(err);
+          return next(err);
         }
         req.flash("success","you are logged out!");
         res.redirect("/listings");
