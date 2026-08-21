@@ -465,3 +465,20 @@ If you found this project interesting, consider giving the repository a ⭐ on G
 <p align="center">
   <b>Built with ❤️ using Node.js, Express, MongoDB & EJS</b>
 </p>
+
+---
+
+## 👩‍💻 Made By
+
+<p align="center">
+  <b>Made with ❤️ by Sneha</b>
+  <br>
+  <br>
+  <a href="https://github.com/Sneha8126">
+    <img src="https://img.shields.io/badge/GitHub-Sneha8126-black?style=for-the-badge&logo=github" alt="GitHub">
+  </a>
+</p>
+
+<p align="center">
+  <b>WanderLust — Travel, Explore & Stay 🌍</b>
+</p>
